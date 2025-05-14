@@ -1,37 +1,152 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RealReview</title>
+    <link rel="stylesheet" href="home.css" />
 </head>
 <body>
-  <h1>Upload an Image</h1>
-  <form action="/upload" method="POST" enctype="multipart/form-data">
-    <input type="text" name="imageName" placeholder="Enter Image Name" required /><br />
-  <input type="text" name="uploadedBy" placeholder="Your Name" required /><br />
-  <input type="text" name="location" placeholder="Location" required /><br />
-  <input type="file" name="image" required /><br />
-  <button type="submit">Upload</button>
-  </form>
-
-  <h2>Uploaded Images</h2>
-  <div id="images"></div>
+  <header>
+    <div class="container">
+      <h1>RealReview</h1>
+    </div>
+  </header>
+  
+  <div class="container">
+    <section class="upload-section">
+      <h2>Upload an Image</h2>
+      <form action="/upload" method="POST" enctype="multipart/form-data" id="upload-form">
+        <div class="form-group">
+          <input type="text" name="imageName" class="form-control" placeholder="Enter Image Name" required />
+        </div>
+        <div class="form-group">
+          <input type="text" name="uploadedBy" class="form-control" placeholder="Your Name" required />
+        </div>
+        <div class="form-group">
+          <input type="text" name="location" class="form-control" placeholder="Location" required />
+        </div>
+        <div class="file-input-group">
+          <label for="file-input" class="file-input-label">
+            <span>Click to select an image or drag and drop</span>
+            <input type="file" name="image" id="file-input" class="file-input" accept="image/*" required />
+          </label>
+          <div class="selected-file" id="file-name">No file selected</div>
+        </div>
+        <button type="submit" class="btn">Upload</button>
+      </form>
+    </section>
+    
+    <section class="gallery-section">
+      <h2>Uploaded Images</h2>
+      <div id="images" class="image-grid">
+        <div class="loading">Loading images...</div>
+      </div>
+    </section>
+  </div>
+  
   <script>
-    fetch('/images')
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById('images');
-        data.forEach(img => {
-          const div = document.createElement('div');
-          div.innerHTML = `
-            <p><strong>${img.imageName}</strong> (Uploaded by: ${img.uploadedBy}, Location: ${img.location})</p>
-            <p>Uploaded at: ${new Date(img.dateUploaded).toLocaleString()}</p>
-            <img src="/uploads/${img.imageFilename}" width="300" />
+    // Handle file selection
+    const fileInput = document.getElementById('file-input');
+    const fileNameDisplay = document.getElementById('file-name');
+    
+    fileInput.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        fileNameDisplay.textContent = this.files[0].name;
+      } else {
+        fileNameDisplay.textContent = 'No file selected';
+      }
+    });
+    
+    // Handle drag and drop
+    const fileLabel = document.querySelector('.file-input-label');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      fileLabel.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      fileLabel.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      fileLabel.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+      fileLabel.style.backgroundColor = 'rgba(77, 182, 172, 0.2)';
+      fileLabel.style.borderColor = 'var(--primary)';
+    }
+    
+    function unhighlight() {
+      fileLabel.style.backgroundColor = 'rgba(77, 182, 172, 0.05)';
+      fileLabel.style.borderColor = 'var(--primary-light)';
+    }
+    
+    fileLabel.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      
+      if (files && files[0]) {
+        fileInput.files = files;
+        fileNameDisplay.textContent = files[0].name;
+      }
+    }
+    
+    // Load images
+    window.addEventListener('DOMContentLoaded', () => {
+      const imagesContainer = document.getElementById('images');
+      
+      fetch('/images')
+        .then(res => res.json())
+        .then(data => {
+          imagesContainer.innerHTML = '';
+          
+          if (data.length === 0) {
+            imagesContainer.innerHTML = `
+              <div class="empty-gallery">
+                <p>No images uploaded yet. Be the first to share!</p>
+              </div>
+            `;
+            return;
+          }
+          
+          data.forEach(img => {
+            const imageCard = document.createElement('div');
+            imageCard.className = 'image-card';
+            
+            const formattedDate = new Date(img.dateUploaded).toLocaleString();
+            
+            imageCard.innerHTML = `
+              <div class="image-wrapper">
+                <img src="/uploads/${img.imageFilename}" alt="${img.imageName}" />
+              </div>
+              <div class="image-info">
+                <div class="image-title">${img.imageName}</div>
+                <div class="image-meta">Uploaded by: ${img.uploadedBy}, Location: ${img.location}</div>
+                <div class="image-date">Uploaded at: ${formattedDate}</div>
+              </div>
+            `;
+            
+            imagesContainer.appendChild(imageCard);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading images:', error);
+          imagesContainer.innerHTML = `
+            <div class="empty-gallery">
+              <p>Error loading images. Please try again later.</p>
+            </div>
           `;
-          container.appendChild(div);
         });
-      });
+    });
   </script>
 </body>
 </html>
