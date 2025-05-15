@@ -31,6 +31,17 @@ const metadataSchema = new mongoose.Schema({
 });
 const Metadata = mongoose.model('Metadata', metadataSchema);
 
+//reviews schema 
+// Define review schema
+const reviewSchema = new mongoose.Schema({
+  imageId: mongoose.Schema.Types.ObjectId,
+  reviewerName: String,
+  reviewText: String,
+  reviewTime: { type: Date, default: Date.now }
+});
+const Review = mongoose.model('Review', reviewSchema);
+
+
 // Static public folder
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -80,6 +91,37 @@ app.get('/images', async (req, res) => {
     console.error('Error fetching images:', error);
     res.status(500).json({ error: 'Failed to fetch images' });
   }
+});
+
+app.post('/add-review', async (req, res) => {
+  const { imageId, reviewerName, reviewText } = req.body;
+
+  if (!imageId || !reviewerName || !reviewText) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
+
+  try {
+    const review = new Review({ imageId, reviewerName, reviewText });
+    await review.save();
+    res.status(201).json({ message: 'Review added successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add review' });
+  }
+});
+
+
+app.get('/reviews/:imageId', async (req, res) => {
+  try {
+    const reviews = await Review.find({ imageId: req.params.imageId }).sort({ reviewTime: -1 });
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+});
+
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
 // Start server

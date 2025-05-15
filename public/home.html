@@ -99,8 +99,7 @@
         fileNameDisplay.textContent = files[0].name;
       }
     }
-    
-    // Load images
+      // Load images
     window.addEventListener('DOMContentLoaded', () => {
       const imagesContainer = document.getElementById('images');
       
@@ -125,17 +124,50 @@
             const formattedDate = new Date(img.dateUploaded).toLocaleString();
             
             imageCard.innerHTML = `
-              <div class="image-wrapper">
-                <img src="/uploads/${img.imageFilename}" alt="${img.imageName}" />
+            <div class="image-wrapper">
+              <img src="/uploads/${img.imageFilename}" alt="${img.imageName}" />
+            </div>
+            <div class="image-info">
+              <div class="image-title">${img.imageName}</div>
+              <div class="image-meta">Uploaded by: ${img.uploadedBy}, Location: ${img.location}</div>
+              <div class="image-date">Uploaded at: ${formattedDate}</div>
+              
+              <div class="review-section">
+                <h4>Reviews:</h4>
+                <div class="review-list" id="reviews-${img.imageId}">Loading reviews...</div>
+
+                <form class="review-form" data-imageid="${img.imageId}">
+                  <input type="text" name="reviewerName" placeholder="Your Name" required />
+                  <textarea name="reviewText" placeholder="Write a review..." required></textarea>
+                  <button type="submit">Submit Review</button>
+                </form>
               </div>
-              <div class="image-info">
-                <div class="image-title">${img.imageName}</div>
-                <div class="image-meta">Uploaded by: ${img.uploadedBy}, Location: ${img.location}</div>
-                <div class="image-date">Uploaded at: ${formattedDate}</div>
-              </div>
-            `;
+            </div>
+          `;
             
             imagesContainer.appendChild(imageCard);
+            
+            // Fetch and display reviews for this image
+            fetch(`/reviews/${img.imageId}`)
+              .then(res => res.json())
+              .then(reviews => {
+                const reviewList = document.getElementById(`reviews-${img.imageId}`);
+                if (reviews.length === 0) {
+                  reviewList.innerHTML = '<p>No reviews yet.</p>';
+                } else {
+                  reviewList.innerHTML = reviews.map(r => `
+                    <div class="review">
+                      <strong>${r.reviewerName}</strong> <em>${new Date(r.reviewTime).toLocaleString()}</em>
+                      <p>${r.reviewText}</p>
+                    </div>
+                  `).join('');
+                }
+              })
+              .catch(err => {
+                console.error(`Error loading reviews for ${img.imageId}:`, err);
+                const reviewList = document.getElementById(`reviews-${img.imageId}`);
+                reviewList.innerHTML = '<p>Error loading reviews.</p>';
+              });
           });
         })
         .catch(error => {
@@ -147,6 +179,50 @@
           `;
         });
     });
+
+        // Handle review form submission
+    document.addEventListener('submit', function (e) {
+      if (e.target.classList.contains('review-form')) {
+        e.preventDefault();
+
+        const form = e.target;
+        const imageId = form.dataset.imageid;
+        const reviewerName = form.reviewerName.value;
+        const reviewText = form.reviewText.value;
+
+        fetch('/add-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageId, reviewerName, reviewText })
+        })
+        .then(res => res.json())
+        .then(result => {
+          alert(result.message || 'Review submitted!');
+          form.reset();
+          // Refresh reviews
+          return fetch(`/reviews/${imageId}`);
+        })
+        .then(res => res.json())
+        .then(reviews => {
+          const reviewList = document.getElementById(`reviews-${imageId}`);
+          if (reviews.length === 0) {
+            reviewList.innerHTML = '<p>No reviews yet.</p>';
+          } else {
+            reviewList.innerHTML = reviews.map(r => `
+              <div class="review">
+                <strong>${r.reviewerName}</strong> <em>${new Date(r.reviewTime).toLocaleString()}</em>
+                <p>${r.reviewText}</p>
+              </div>
+            `).join('');
+          }
+        })
+        .catch(err => {
+          console.error('Review error:', err);
+          alert('Failed to submit review');
+        });
+      }
+    });
+
   </script>
 </body>
 </html>
