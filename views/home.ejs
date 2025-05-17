@@ -99,6 +99,40 @@
         fileNameDisplay.textContent = files[0].name;
       }
     }
+
+        // Handle image upload form submission
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Show success message from backend
+        alert(data.message || 'Image uploaded successfully!');
+        
+        // Reset the form
+        this.reset();
+        document.getElementById('file-name').textContent = 'No file selected';
+        
+        
+      })
+      .catch(error => {
+        console.error('Upload error:', error);
+        alert('Error uploading image: ' + error.message);
+      });
+    });
+
+
       // Load images
     window.addEventListener('DOMContentLoaded', () => {
       const imagesContainer = document.getElementById('images');
