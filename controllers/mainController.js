@@ -1,11 +1,8 @@
-const Image = require('../models/Image');
-const Metadata = require('../models/Metadata');
-const Review = require('../models/Review');
+const mainService = require('../services/mainService');
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 
-// Multer setup for image uploads
+// Multer setup
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = './uploads';
@@ -18,70 +15,67 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Image and Metadata Controllers
-
+// Load home page
 const loadHomePage = (req, res) => {
-    res.render('home', { title: 'Home page' });
-    }
+  res.render('home', { title: 'Home page' });
+};
 
+// Upload image
 const uploadImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).send('No file uploaded.');
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
 
-    const { imageName, uploadedBy, location } = req.body;
-
-    // Save image entry
-    const image = new Image({ filename: req.file.filename });
-    await image.save();
-
-    // Save metadata entry
-    const metadata = new Metadata({
-      imageId: image._id,
-      imageFilename: req.file.filename,
-      imageName,
-      uploadedBy,
-      location
-    });
-    await metadata.save();
-
-    res.status(201).json({message: 'Image uploaded successfully'});
+    const result = await mainService.uploadImage(req.file, req.body);
+    res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Upload Image Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
+// Get all images
 const getAllImages = async (req, res) => {
   try {
-    const metadataList = await Metadata.find().sort({ dateUploaded: -1 });
-    res.json(metadataList);
+    const result = await mainService.getAllImages();
+    res.status(200).json(result);
   } catch (error) {
-    console.error('Error fetching images:', error);
+    console.error('Get Images Error:', error);
     res.status(500).json({ error: 'Failed to fetch images' });
   }
 };
 
-// Review Controllers
+// Add review
 const addReview = async (req, res) => {
-  const { imageId, reviewerName, reviewText } = req.body;
-
-  if (!imageId || !reviewerName || !reviewText) {
-    return res.status(400).json({ error: 'Missing fields' });
-  }
-
   try {
-    const review = new Review({ imageId, reviewerName, reviewText });
-    await review.save();
-    res.status(201).json({ message: 'Review added successfully' });
+    const { imageId, reviewerName, reviewText } = req.body;
+
+    if (!imageId || !reviewerName || !reviewText) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const result = await mainService.addReview(req.body);
+    res.status(201).json(result);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to add review' });
+    console.error('Add Review Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
+// Get reviews
 const getReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ imageId: req.params.imageId }).sort({ reviewTime: -1 });
-    res.json(reviews);
+    const { imageId } = req.params;
+
+    if (!imageId) {
+      return res.status(400).json({ error: 'Image ID is required' });
+    }
+
+    const result = await mainService.getReviews(imageId);
+    res.status(200).json(result);
   } catch (err) {
+    console.error('Get Reviews Error:', err);
     res.status(500).json({ error: 'Failed to fetch reviews' });
   }
 };
