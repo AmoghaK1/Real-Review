@@ -6,7 +6,17 @@ const controller = require('../controllers/mainController');
 router.get('/', controller.loadHomePage);
 
 // Image routes
-router.post('/upload', controller.upload.single('image'), controller.uploadImage);
+router.post('/upload', (req, res, next) => {
+  controller.upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('Upload middleware error:', err);
+      return res.status(422).json({ 
+        error: err.message || 'File upload failed' 
+      });
+    }
+    next();
+  });
+}, controller.uploadImage);
 
 router.get('/images', controller.getAllImages);
 

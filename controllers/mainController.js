@@ -14,6 +14,9 @@ const s3Client = new S3Client({
 
 // ✅ Multer S3 Storage Setup with AWS SDK v3
 const upload = multer({
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB file size limit for mobile photos which can be large
+  },
   storage: multerS3({
     s3: s3Client,
     bucket: process.env.AWS_BUCKET_NAME,
@@ -21,10 +24,19 @@ const upload = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-      cb(null, Date.now().toString() + '-' + file.originalname);
+      // Clean the filename to prevent issues with special characters from mobile devices
+      const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      cb(null, Date.now().toString() + '-' + sanitizedName);
     },
     contentType: multerS3.AUTO_CONTENT_TYPE
-  })
+  }),
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif|heic|heif)$/i)) {
+      return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+  }
 });
 
 // Load home page
@@ -43,7 +55,7 @@ const uploadImage = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Upload Image Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 };
 
