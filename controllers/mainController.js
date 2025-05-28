@@ -2,6 +2,7 @@ const mainService = require('../services/mainService');
 const multer = require('multer');
 const { S3Client } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
+const path = require('path');
 
 // AWS SDK v3 configuration
 const s3Client = new S3Client({
@@ -14,9 +15,6 @@ const s3Client = new S3Client({
 
 // ✅ Multer S3 Storage Setup with AWS SDK v3
 const upload = multer({
-  limits: {
-    fileSize: 20 * 1024 * 1024, // 20MB file size limit for mobile photos which can be large
-  },
   storage: multerS3({
     s3: s3Client,
     bucket: process.env.AWS_BUCKET_NAME,
@@ -24,18 +22,43 @@ const upload = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-      // Clean the filename to prevent issues with special characters from mobile devices
-      const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-      cb(null, Date.now().toString() + '-' + sanitizedName);
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, Date.now().toString() + ext);
     },
-    contentType: multerS3.AUTO_CONTENT_TYPE
-  }),
-  fileFilter: (req, file, cb) => {
-    // Accept images only
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif|heic|heif)$/i)) {
-      return cb(new Error('Only image files are allowed!'), false);
+    contentType: function (req, file, cb) {
+      // Set proper content type based on file extension
+      let contentType = 'application/octet-stream';
+      const ext = path.extname(file.originalname).toLowerCase();
+      
+      if (['.jpg', '.jpeg'].includes(ext)) {
+        contentType = 'image/jpeg';
+      } else if (ext === '.png') {
+        contentType = 'image/png';
+      } else if (ext === '.gif') {
+        contentType = 'image/gif';
+      } else if (ext === '.webp') {
+        contentType = 'image/webp';
+      } else if (ext === '.heic' || ext === '.heif') {
+        // Common mobile formats
+        contentType = 'image/heif';
+      }
+      
+      cb(null, contentType);
     }
-    cb(null, true);
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif|webp|heic|heif/;
+    const extname = path.extname(file.originalname).toLowerCase();
+    const mimetype = filetypes.test(file.mimetype);
+    
+    if (mimetype && extname && filetypes.test(extname)) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files are allowed!'));
   }
 });
 
@@ -55,7 +78,7 @@ const uploadImage = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Upload Image Error:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
