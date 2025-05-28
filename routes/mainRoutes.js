@@ -7,6 +7,7 @@ router.get('/', controller.loadHomePage);
 
 // Image routes
 router.post('/upload', controller.upload.single('image'), controller.uploadImage);
+
 router.get('/images', controller.getAllImages);
 
 // Review routes

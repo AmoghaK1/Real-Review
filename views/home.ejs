@@ -100,7 +100,7 @@
       }
     }
 
-        // Handle image upload form submission
+    // Handle image upload form submission
     document.getElementById('upload-form').addEventListener('submit', function(e) {
       e.preventDefault();
       
@@ -118,13 +118,17 @@
       })
       .then(data => {
         // Show success message from backend
-        alert(data.message || 'Image uploaded successfully! Reload site to see changes.');
+        alert(data.message || 'Image uploaded successfully!');
         
         // Reset the form
         this.reset();
         document.getElementById('file-name').textContent = 'No file selected';
         
-        
+        // Refresh the gallery
+        fetch('/images')
+          .then(res => res.json())
+          .then(updateGallery)
+          .catch(error => console.error('Error refreshing gallery:', error));
       })
       .catch(error => {
         console.error('Upload error:', error);
@@ -132,34 +136,29 @@
       });
     });
 
+    // Function to update gallery with images
+    function updateGallery(data) {
+      const imagesContainer = document.getElementById('images');
+      imagesContainer.innerHTML = '';
 
-        // Load images
-      window.addEventListener('DOMContentLoaded', () => {
-    const imagesContainer = document.getElementById('images');
+      if (data.length === 0) {
+        imagesContainer.innerHTML = `
+          <div class="empty-gallery">
+            <p>No images uploaded yet. Be the first to share!</p>
+          </div>
+        `;
+        return;
+      }
 
-    fetch('/images')
-      .then(res => res.json())
-      .then(data => {
-        imagesContainer.innerHTML = '';
+      data.forEach(img => {
+        const imageCard = document.createElement('div');
+        imageCard.className = 'image-card';
 
-        if (data.length === 0) {
-          imagesContainer.innerHTML = `
-            <div class="empty-gallery">
-              <p>No images uploaded yet. Be the first to share!</p>
-            </div>
-          `;
-          return;
-        }
-
-        data.forEach(img => {
-          const imageCard = document.createElement('div');
-          imageCard.className = 'image-card';
-
-          const formattedDate = new Date(img.dateUploaded).toLocaleString();
-
-          imageCard.innerHTML = `
+        const formattedDate = new Date(img.dateUploaded).toLocaleString();
+        
+        imageCard.innerHTML = `
           <div class="image-wrapper">
-            <img src="/uploads/${img.filename}" alt="${img.name}" />
+            <img src="${img.imageUrl || `/uploads/${img.filename}`}" alt="${img.name}" />
           </div>
           <div class="image-info">
             <div class="image-title">${img.name}</div>
@@ -179,83 +178,89 @@
           </div>
         `;
 
-          imagesContainer.appendChild(imageCard);
+        imagesContainer.appendChild(imageCard);
 
-          // Fetch and display reviews for this image
-          fetch(`/reviews/${img.id}`)
-            .then(res => res.json())
-            .then(reviews => {
-              const reviewList = document.getElementById(`reviews-${img.id}`);
-              if (reviews.length === 0) {
-                reviewList.innerHTML = '<p>No reviews yet.</p>';
-              } else {
-                reviewList.innerHTML = reviews.map(r => `
-                  <div class="review">
-                    <strong>${r.reviewer}</strong> <em>${new Date(r.time).toLocaleString()}</em>
-                    <p>${r.text}</p>
-                  </div>
-                `).join('');
-              }
-            })
-            .catch(err => {
-              console.error(`Error loading reviews for ${img.id}:`, err);
-              const reviewList = document.getElementById(`reviews-${img.id}`);
-              reviewList.innerHTML = '<p>Error loading reviews.</p>';
-            });
-        });
-      })
-      .catch(error => {
-        console.error('Error loading images:', error);
-        imagesContainer.innerHTML = `
-          <div class="empty-gallery">
-            <p>Error loading images. Please try again later.</p>
-          </div>
-        `;
-      });
-  });
-
-          // Handle review form submission
-      document.addEventListener('submit', function (e) {
-    if (e.target.classList.contains('review-form')) {
-      e.preventDefault();
-
-      const form = e.target;
-      const imageId = form.dataset.imageid;
-      const reviewerName = form.reviewerName.value;
-      const reviewText = form.reviewText.value;
-
-      fetch('/add-review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageId, reviewerName, reviewText })
-      })
-      .then(res => res.json())
-      .then(result => {
-        alert(result.message || 'Review submitted!');
-        form.reset();
-        return fetch(`/reviews/${imageId}`);
-      })
-      .then(res => res.json())
-      .then(reviews => {
-        const reviewList = document.getElementById(`reviews-${imageId}`);
-        if (reviews.length === 0) {
-          reviewList.innerHTML = '<p>No reviews yet.</p>';
-        } else {
-          reviewList.innerHTML = reviews.map(r => `
-            <div class="review">
-              <strong>${r.reviewer}</strong> <em>${new Date(r.time).toLocaleString()}</em>
-              <p>${r.text}</p>
-            </div>
-          `).join('');
-        }
-      })
-      .catch(err => {
-        console.error('Review error:', err);
-        alert('Failed to submit review');
+        // Fetch and display reviews for this image
+        fetch(`/reviews/${img.id}`)
+          .then(res => res.json())
+          .then(reviews => {
+            const reviewList = document.getElementById(`reviews-${img.id}`);
+            if (reviews.length === 0) {
+              reviewList.innerHTML = '<p>No reviews yet.</p>';
+            } else {
+              reviewList.innerHTML = reviews.map(r => `
+                <div class="review">
+                  <strong>${r.reviewer}</strong> <em>${new Date(r.time).toLocaleString()}</em>
+                  <p>${r.text}</p>
+                </div>
+              `).join('');
+            }
+          })
+          .catch(err => {
+            console.error(`Error loading reviews for ${img.id}:`, err);
+            const reviewList = document.getElementById(`reviews-${img.id}`);
+            reviewList.innerHTML = '<p>Error loading reviews.</p>';
+          });
       });
     }
-  });
 
+    // Load images when page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      fetch('/images')
+        .then(res => res.json())
+        .then(updateGallery)
+        .catch(error => {
+          console.error('Error loading images:', error);
+          const imagesContainer = document.getElementById('images');
+          imagesContainer.innerHTML = `
+            <div class="empty-gallery">
+              <p>Error loading images. Please try again later.</p>
+            </div>
+          `;
+        });
+    });
+
+    // Handle review form submission
+    document.addEventListener('submit', function (e) {
+      if (e.target.classList.contains('review-form')) {
+        e.preventDefault();
+
+        const form = e.target;
+        const imageId = form.dataset.imageid;
+        const reviewerName = form.reviewerName.value;
+        const reviewText = form.reviewText.value;
+
+        fetch('/add-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageId, reviewerName, reviewText })
+        })
+        .then(res => res.json())
+        .then(result => {
+          alert(result.message || 'Review submitted!');
+          form.reset();
+          return fetch(`/reviews/${imageId}`);
+        })
+        .then(res => res.json())
+        .then(reviews => {
+          const reviewList = document.getElementById(`reviews-${imageId}`);
+          if (reviews.length === 0) {
+            reviewList.innerHTML = '<p>No reviews yet.</p>';
+          } else {
+            reviewList.innerHTML = reviews.map(r => `
+              <div class="review">
+                <strong>${r.reviewer}</strong> <em>${new Date(r.time).toLocaleString()}</em>
+                <p>${r.text}</p>
+              </div>
+            `).join('');
+          }
+        })
+        .catch(err => {
+          console.error('Review error:', err);
+          alert('Failed to submit review');
+        });
+      }
+    });
   </script>
 </body>
 </html>
