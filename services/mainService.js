@@ -39,6 +39,7 @@ const uploadImage = async (file, body) => {
     };
   } catch (error) {
     console.error('Error in uploadImage:', error);
+   
     throw error;
   }
 };
