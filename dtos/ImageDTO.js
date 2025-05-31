@@ -6,7 +6,8 @@ class ImageDTO {
       name: metadata.imageName,
       uploadedBy: metadata.uploadedBy,
       location: metadata.location,
-      dateUploaded: metadata.dateUploaded
+      dateUploaded: metadata.dateUploaded,
+      imageUrl: metadata.imageUrl
     };
   }
 }

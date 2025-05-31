@@ -8,27 +8,42 @@ const ReviewDTO = require('../dtos/ReviewDTO');
 const uploadImage = async (file, body) => {
   try {
     if (!file) throw new Error('No file uploaded.');
-
     const { imageName, uploadedBy, location } = body;
-
-    const image = new Image({ filename: file.filename });
+    // With multer-s3 v3, use the ETag as the key if key is not available
+    const fileKey = file.key || file.originalname;
+    // Save basic image info
+    const image = new Image({
+      filename: file.key
+    });
     await image.save();
 
+    // In multer-s3 v3, the URL is accessed differently
+    // Getting S3 URL from file object
+    const fileUrl = file.location || `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+    
+    // Save metadata including full S3 URL
     const metadata = new Metadata({
       imageId: image._id,
-      imageFilename: file.filename,
-      imageName,
-      uploadedBy,
-      location
-    });
-    await metadata.save();
+      imageFilename: file.key,
+      imageUrl: fileUrl,
+      imageName: imageName || 'Untitled',
+      uploadedBy: uploadedBy || 'Anonymous',
+      location: location || 'Unknown'
+    });await metadata.save();
 
-    return { message: 'Image uploaded successfully' };
+    return { 
+      message: 'Image uploaded successfully', 
+      imageUrl: metadata.imageUrl,
+      imageId: image._id,
+      metadata: metadata 
+    };
   } catch (error) {
     console.error('Error in uploadImage:', error);
+   
     throw error;
   }
 };
+
 
 const getAllImages = async () => {
   try {

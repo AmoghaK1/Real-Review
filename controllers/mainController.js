@@ -1,19 +1,66 @@
 const mainService = require('../services/mainService');
 const multer = require('multer');
-const fs = require('fs');
+const { S3Client } = require('@aws-sdk/client-s3');
+const multerS3 = require('multer-s3');
+const path = require('path');
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = './uploads';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+// AWS SDK v3 configuration
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
   }
 });
-const upload = multer({ storage });
+
+// ✅ Multer S3 Storage Setup with AWS SDK v3
+const upload = multer({
+  storage: multerS3({
+    s3: s3Client,
+    bucket: process.env.AWS_BUCKET_NAME,
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: function (req, file, cb) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, Date.now().toString() + ext);
+    },
+    contentType: function (req, file, cb) {
+      // Set proper content type based on file extension
+      let contentType = 'application/octet-stream';
+      const ext = path.extname(file.originalname).toLowerCase();
+      
+      if (['.jpg', '.jpeg'].includes(ext)) {
+        contentType = 'image/jpeg';
+      } else if (ext === '.png') {
+        contentType = 'image/png';
+      } else if (ext === '.gif') {
+        contentType = 'image/gif';
+      } else if (ext === '.webp') {
+        contentType = 'image/webp';
+      } else if (ext === '.heic' || ext === '.heif') {
+        // Common mobile formats
+        contentType = 'image/heif';
+      }
+      
+      cb(null, contentType);
+    }
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif|webp|heic|heif/;
+    const extname = path.extname(file.originalname).toLowerCase();
+    const mimetype = filetypes.test(file.mimetype);
+    
+    if (mimetype && extname && filetypes.test(extname)) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files are allowed!'));
+  }
+});
 
 // Load home page
 const loadHomePage = (req, res) => {
@@ -26,7 +73,7 @@ const uploadImage = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-
+    
     const result = await mainService.uploadImage(req.file, req.body);
     res.status(201).json(result);
   } catch (error) {

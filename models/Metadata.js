@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const metadataSchema = new mongoose.Schema({
   imageId: mongoose.Schema.Types.ObjectId,
   imageFilename: String,
+  imageUrl: String, // Full S3 URL
   imageName: String,
   uploadedBy: String,
   location: String,
