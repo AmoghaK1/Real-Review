@@ -13,7 +13,7 @@ const uploadImage = async (file, body) => {
     const fileKey = file.key || file.originalname;
     // Save basic image info
     const image = new Image({
-      filename: file.key
+      filename: fileKey
     });
     await image.save();
 
@@ -24,7 +24,7 @@ const uploadImage = async (file, body) => {
     // Save metadata including full S3 URL
     const metadata = new Metadata({
       imageId: image._id,
-      imageFilename: file.key,
+      imageFilename: fileKey,
       imageUrl: fileUrl,
       imageName: imageName || 'Untitled',
       uploadedBy: uploadedBy || 'Anonymous',
