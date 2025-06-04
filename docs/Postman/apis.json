@@ -1,0 +1,90 @@
+{
+	"info": {
+		"_postman_id": "1e5243fc-c7bc-4f1a-81e1-11dea17ff1d1",
+		"name": "Real Review APIs",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "45233563",
+		"_collection_link": "https://amoghakhare.postman.co/workspace/Amogha-Khare's-Workspace~15b9dcbe-0531-439b-8c77-51aa1eb4ce02/collection/45233563-1e5243fc-c7bc-4f1a-81e1-11dea17ff1d1?action=share&source=collection_link&creator=45233563"
+	},
+	"item": [
+		{
+			"name": "Home Page",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://43.205.212.117:3000/"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Images",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://43.205.212.117:3000/images"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Reviews",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://43.205.212.117:3000/reviews/:imageId",
+					"protocol": "http",
+					"host": [
+						"43",
+						"205",
+						"212",
+						"117"
+					],
+					"port": "3000",
+					"path": [
+						"reviews",
+						":imageId"
+					],
+					"variable": [
+						{
+							"key": "imageId",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Upload Image",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "image",
+							"type": "file",
+							"src": "/C:/Users/amogh/Downloads/Screenshot 2025-05-03 151420.png"
+						}
+					]
+				},
+				"url": "http://43.205.212.117:3000/upload"
+			},
+			"response": []
+		},
+		{
+			"name": "Post Review",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": []
+				},
+				"url": "http://43.205.212.117:3000/add-review"
+			},
+			"response": []
+		}
+	]
+}

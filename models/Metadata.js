@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const metadataSchema = new mongoose.Schema({
   imageId: mongoose.Schema.Types.ObjectId,
-  imageFilename: String,
+  imageFilename: String, // S3 key for pre-signed URL generation
   imageName: String,
   uploadedBy: String,
   location: String,
