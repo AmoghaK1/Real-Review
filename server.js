@@ -3,6 +3,13 @@ const express = require('express');
 const path = require('path');
 const app = express();
 const mongoose = require('mongoose');
+const cron = require('node-cron');
+const { syncDeletedImages } = require('./scripts/syncS3andMongo');
+
+cron.schedule('0 1 * * *', async () => {
+  console.log('🕐 Running daily S3-Mongo sync job...');
+  await syncDeletedImages();
+});
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI).then(() => {
