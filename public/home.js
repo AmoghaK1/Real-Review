@@ -108,10 +108,9 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
         imageCard.className = 'image-card';
 
         const formattedDate = new Date(img.dateUploaded).toLocaleString();
-        
-        imageCard.innerHTML = `
+          imageCard.innerHTML = `
           <div class="image-wrapper">
-            <img src="${img.imageUrl || `/uploads/${img.filename}`}" alt="${img.name}" />
+            <img src="/image/${img.filename}" alt="${img.name}" />
           </div>
           <div class="image-info">
             <div class="image-title">${img.name}</div>

@@ -22,7 +22,8 @@ router.post('/upload', (req, res) => {
   });
 });
 
-
+// Add route for getting images with pre-signed URLs
+router.get('/image/:key', controller.getImage);
 
 router.get('/images', controller.getAllImages);
 

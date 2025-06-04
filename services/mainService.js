@@ -10,31 +10,27 @@ const uploadImage = async (file, body) => {
     if (!file) throw new Error('No file uploaded.');
     const { imageName, uploadedBy, location } = body;
     // With multer-s3 v3, use the ETag as the key if key is not available
-    const fileKey = file.key || file.originalname;
-    // Save basic image info
+    const fileKey = file.key || file.originalname;    // Save basic image info
     const image = new Image({
       filename: file.key
     });
     await image.save();
 
-    // In multer-s3 v3, the URL is accessed differently
-    // Getting S3 URL from file object
-    const fileUrl = file.location || `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+    // In multer-s3 v3, we store only the key for file access via pre-signed URLs
     
-    // Save metadata including full S3 URL
+    
+    // Save metadata without the full S3 URL
     const metadata = new Metadata({
       imageId: image._id,
       imageFilename: file.key,
-      imageUrl: fileUrl,
       imageName: imageName || 'Untitled',
       uploadedBy: uploadedBy || 'Anonymous',
       location: location || 'Unknown'
-    });await metadata.save();
-
-    return { 
-      message: 'Image uploaded successfully', 
-      imageUrl: metadata.imageUrl,
+    });
+    await metadata.save();    return { 
+      message: 'Image uploaded successfully',
       imageId: image._id,
+      filename: file.key,
       metadata: metadata 
     };
   } catch (error) {
