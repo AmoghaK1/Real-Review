@@ -1,4 +1,5 @@
-class ImageDTO {  static fromMetadata(metadata) {
+class ImageDTO {  
+  static fromMetadata(metadata) {
     return {
       id: metadata._id,
       filename: metadata.imageFilename,

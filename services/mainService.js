@@ -10,8 +10,7 @@ const uploadImage = async (file, body) => {
     if (!file) throw new Error('No file uploaded.');
     const { imageName, uploadedBy, location } = body;
     // With multer-s3 v3, use the ETag as the key if key is not available
-    const fileKey = file.key || file.originalname;    // Save basic image info
-    const image = new Image({
+      const image = new Image({
       filename: file.key
     });
     await image.save();
@@ -27,7 +26,8 @@ const uploadImage = async (file, body) => {
       uploadedBy: uploadedBy || 'Anonymous',
       location: location || 'Unknown'
     });
-    await metadata.save();    return { 
+    await metadata.save();    
+    return { 
       message: 'Image uploaded successfully',
       imageId: image._id,
       filename: file.key,
