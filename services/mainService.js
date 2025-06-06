@@ -1,41 +1,36 @@
-const Image = require('../models/Image');
-const Metadata = require('../models/Metadata');
-const Review = require('../models/Review');
+const { createMetadata } = require('../models/Metadata');
+const { createReview } = require('../models/Review');
 const ImageDTO = require('../dtos/ImageDTO');
 const ReviewDTO = require('../dtos/ReviewDTO');
+const { queryItems, scanItems } = require('../utils/dynamoClient');
+
 
 // Image Operations
 const uploadImage = async (file, body) => {
   try {
     if (!file) throw new Error('No file uploaded.');
     const { imageName, uploadedBy, location } = body;
-    // With multer-s3 v3, use the ETag as the key if key is not available
-      const image = new Image({
-      filename: file.key
-    });
-    await image.save();
 
-    // In multer-s3 v3, we store only the key for file access via pre-signed URLs
-    
-    
-    // Save metadata without the full S3 URL
-    const metadata = new Metadata({
-      imageId: image._id,
+    // Save metadata directly to DynamoDB
+    const metadata = {
+      imageId: file.key, // Use file key as unique identifier
       imageFilename: file.key,
       imageName: imageName || 'Untitled',
       uploadedBy: uploadedBy || 'Anonymous',
-      location: location || 'Unknown'
-    });
-    await metadata.save();    
-    return { 
+      location: location || 'Unknown',
+      dateUploaded: new Date().toISOString()
+    };
+
+    await createMetadata(metadata);
+
+    return {
       message: 'Image uploaded successfully',
-      imageId: image._id,
+      imageId: file.key,
       filename: file.key,
-      metadata: metadata 
+      metadata: metadata
     };
   } catch (error) {
     console.error('Error in uploadImage:', error);
-   
     throw error;
   }
 };
@@ -43,13 +38,15 @@ const uploadImage = async (file, body) => {
 
 const getAllImages = async () => {
   try {
-    const metadataList = await Metadata.find().sort({ dateUploaded: -1 });
-    return metadataList.map(ImageDTO.fromMetadata);
+    // Use scan to get all metadata items across all partitions
+    const allItems = await scanItems('begins_with(SK, :sk)', { ':sk': 'METADATA#' });
+    return allItems.map(ImageDTO.fromMetadata);
   } catch (error) {
     console.error('Error in getAllImages:', error);
     throw error;
   }
 };
+
 
 // Review Operations
 const addReview = async ({ imageId, reviewerName, reviewText }) => {
@@ -58,8 +55,7 @@ const addReview = async ({ imageId, reviewerName, reviewText }) => {
       throw new Error('Missing fields');
     }
 
-    const review = new Review({ imageId, reviewerName, reviewText });
-    await review.save();
+    await createReview({ imageId, reviewerName, reviewText });
 
     return { message: 'Review added successfully' };
   } catch (error) {
@@ -70,7 +66,8 @@ const addReview = async ({ imageId, reviewerName, reviewText }) => {
 
 const getReviews = async (imageId) => {
   try {
-    const reviews = await Review.find({ imageId }).sort({ reviewTime: -1 });
+    // Use DynamoDB query to get reviews for a specific imageId
+    const reviews = await queryItems(`IMAGE#${imageId}`, { skBeginsWith: 'REVIEW#' });
     return reviews.map(ReviewDTO.fromReview);
   } catch (error) {
     console.error('Error in getReviews:', error);

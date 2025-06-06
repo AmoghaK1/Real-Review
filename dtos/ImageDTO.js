@@ -1,8 +1,13 @@
-class ImageDTO {  
+class ImageDTO {
   static fromMetadata(metadata) {
+    // Extract imageId from PK (format: "IMAGE#imageId")
+    const imageId = metadata.PK.replace('IMAGE#', '');
+    // Extract filename from SK (format: "METADATA#filename")
+    const filename = metadata.SK.replace('METADATA#', '');
+    
     return {
-      id: metadata._id,
-      filename: metadata.imageFilename,
+      id: imageId,
+      filename: filename,
       name: metadata.imageName,
       uploadedBy: metadata.uploadedBy,
       location: metadata.location,
@@ -10,5 +15,4 @@ class ImageDTO {
     };
   }
 }
-
 module.exports = ImageDTO;

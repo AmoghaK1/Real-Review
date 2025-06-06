@@ -124,39 +124,7 @@ const getReviews = async (req, res) => {
     res.status(200).json(result);
   } catch (err) {
     console.error('Get Reviews Error:', err);
-    res.status(500).json({ error: 'Failed to fetch reviews' });
-  }
-};
-
-// Get presigned URL for image download
-const getPresignedUrl = async (req, res) => {
-  try {
-    const { imageId } = req.params;
-
-    if (!imageId) {
-      return res.status(400).json({ error: 'Image ID is required' });
-    }
-
-    // Get the image data from the database or any other source
-    const image = await mainService.getImageById(imageId);
-
-    if (!image) {
-      return res.status(404).json({ error: 'Image not found' });
-    }
-
-    const command = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: image.key // Assuming 'key' is the field that stores the S3 object key
-    });
-
-    // Get presigned URL for the S3 object
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL valid for 1 hour
-
-    res.status(200).json({ url });
-  } catch (error) {
-    console.error('Get Presigned URL Error:', error);
-    res.status(500).json({ error: 'Failed to generate presigned URL' });
-  }
+    res.status(500).json({ error: 'Failed to fetch reviews' });  }
 };
 
 // Get image with pre-signed URL
@@ -187,6 +155,5 @@ module.exports = {
   getAllImages,
   addReview,
   getReviews,
-  getPresignedUrl,
   getImage
 };

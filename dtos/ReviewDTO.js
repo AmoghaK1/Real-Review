@@ -1,7 +1,7 @@
 class ReviewDTO {
   static fromReview(review) {
     return {
-      id: review._id,
+      id: review.SK, // Use SK as unique identifier for the review
       reviewer: review.reviewerName,
       text: review.reviewText,
       time: review.reviewTime

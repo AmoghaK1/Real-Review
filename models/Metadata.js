@@ -1,12 +1,32 @@
-const mongoose = require('mongoose');
+const { putItem, getItem, queryItems, deleteItem } = require('../utils/dynamoClient');
 
-const metadataSchema = new mongoose.Schema({
-  imageId: mongoose.Schema.Types.ObjectId,
-  imageFilename: String, // S3 key for pre-signed URL generation
-  imageName: String,
-  uploadedBy: String,
-  location: String,
-  dateUploaded: { type: Date, default: Date.now }
-}, {collection: 'metadata'});
+// Create metadata
+const createMetadata = async (metadata) => {
+  const item = {
+    PK: `IMAGE#${metadata.imageId}`,
+    SK: `METADATA#${metadata.imageFilename}`,
+    imageName: metadata.imageName,
+    uploadedBy: metadata.uploadedBy,
+    location: metadata.location,
+    dateUploaded: new Date().toISOString()
+  };
 
-module.exports = mongoose.model('Metadata', metadataSchema);
+  await putItem(item);
+  return item;
+};
+
+// Get metadata by imageId and filename
+const getMetadata = async (imageId, imageFilename) => {
+  return await getItem(`IMAGE#${imageId}`, `METADATA#${imageFilename}`);
+};
+
+// Delete metadata
+const deleteMetadata = async (imageId, imageFilename) => {
+  return await deleteItem(`IMAGE#${imageId}`, `METADATA#${imageFilename}`);
+};
+
+module.exports = {
+  createMetadata,
+  getMetadata,
+  deleteMetadata
+};
