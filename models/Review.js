@@ -1,4 +1,4 @@
-const { putItem, getItem, queryItems, deleteItem } = require('../utils/dynamoClient');
+const { putItem, getItem, deleteItem } = require('../utils/dynamoClient');
 
 // Create review
 const createReview = async (review) => {
